@@ -1,4 +1,4 @@
-samples,tissue,stage,sex,day,treatment,day_description
+sample,tissue,stage,sex,day,treatment,day_description
 L-Blu13_male_gonad_control.NYNO_kallisto_out,gonad,control,male,0,normal,control
 L-Blu13_male_hypothalamus_control.NYNO_kallisto_out,hypo,control,male,0,normal,control
 L-Blu13_male_pituitary_control.NYNO_kallisto_out,pit,control,male,0,normal,control
