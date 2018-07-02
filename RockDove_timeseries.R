@@ -33,9 +33,9 @@ memory.limit(32000000)
 # get the directory/path for each sample in this study
 base_dir <- getwd()
 # name of each sample
-sample_id <- dir(file.path(base_dir, "kallisto_quants")) ############ EDIT THIS
+sample_id <- dir(file.path(base_dir, "kallisto_mappings")) 
 # append them to get the location of each samples' quantification
-kal_dirs <- sapply(sample_id, function(id) file.path(base_dir, "kallisto_quants", id))
+kal_dirs <- sapply(sample_id, function(id) file.path(base_dir, "kallisto_mappings", id))
 # read in a tab-delimited file with information about samples and treatments
 samples <- read.csv("Parental_data_for_analyses.csv", header = TRUE)
 # order them to match up with sample paths
@@ -52,7 +52,7 @@ spline_design <- model.matrix(formula( ~ ns(samples$day, df = 3) + samples$sex +
 spline_design
 
 ##############add annotation data here
-ann <- fread() #### add in data once I have it.
+ann <- fread() #### add in annotation data once I have it.
 
 # import everything into a sleuth object using the Sleuth package
 so <- sleuth_prep(samples, num_cores = 18) #, target_mapping = ann
