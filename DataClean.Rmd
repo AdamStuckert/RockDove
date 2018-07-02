@@ -1,0 +1,74 @@
+---
+title: "RockDove_dataprep"
+author: "Adam Stuckert"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r global_options, include=FALSE}
+# load packages required for analyses
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+# library(biomaRt)
+library(sleuth)
+library(dplyr)
+library(foreach)
+library(doParallel)
+library(data.table)
+library(splines)
+library(ggthemes)
+library(scales)
+library(gridExtra)
+```
+
+## Background
+
+This is an R Markdown document for basic data preparation. The dataset is just under 1,000 RNA seq samples from the Rock Dove across different points during parental care, both sexes, and multiple tissues (hypothalamus, pituitary, gonads). Here I am just getting the metadata into a usable format, but the actual analysis will be done in base R to utilize multithreading. 
+
+In particular, we want to make time series graphs for a number of genes that are known to be important in parental care in this species:
+
+Androgen receptor  422165
+Glucocorticoid receptor 416343
+Gonadotropin Inhibitory Hormone  378785 (edited)
+Prolactin  396453
+Prolactin Receptor  395660
+
+```{r}
+data <- read.csv("Raw_data/Parental_meta_final.csv")
+str(data)
+```
+
+Rename first column, add "_kallisto_out" to sample names, and then modify the "day" variable to be numeric and add 1 to each stage...
+
+```{r}
+colnames(data)[1] <- "name"
+data$samples <- paste0(data$name, "_kallisto_out")
+
+#subset out the control animals and add a time point
+controls <- dplyr::filter(data, day == "control")
+controls$day <-  "0"
+controls$day <- as.numeric(controls$day)
+
+#subset out the other parental care animals and add one to their time point
+parents <- dplyr::filter(data, day != "control")
+parents$day <- gsub("D", "", parents$day)
+parents$day <- as.numeric(parents$day)
+parents$day <- (parents$day + 1)
+
+#combine dataframes, move the samples to the beginning
+newdata <- rbind(controls, parents)
+
+newdata <- newdata[,c(7,2:6)]
+
+datasub <- data[,c(7,5)]
+colnames(datasub)[2] <- "day_description"
+newdata1 <- dplyr::left_join(newdata, datasub)
+newdata <- newdata1
+rm(newdata1)
+
+write.csv(newdata, "Parental_data_for_analyses.csv")
+```
+
+
+
