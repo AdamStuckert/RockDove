@@ -28,7 +28,6 @@ library(gridExtra)
 
 sessionInfo()
 
-memory.limit(32000000)
 
 # get the directory/path for each sample in this study
 base_dir <- getwd()
@@ -38,8 +37,10 @@ sample_id <- dir(file.path(base_dir, "kallisto_mappings"))
 kal_dirs <- sapply(sample_id, function(id) file.path(base_dir, "kallisto_mappings", id))
 # read in a tab-delimited file with information about samples and treatments
 samples <- read.csv("Parental_data_for_analyses.csv", header = TRUE)
+# drop column from Windows...
+samples <- samples[,2:8]
 # order them to match up with sample paths
-# samples <- samples[order(samples$sample),] ##not sure this is needed?
+samples <- samples[order(samples$sample),] 
 # append paths to the sample dataframe
 samples <- dplyr::mutate(samples, path = kal_dirs)
 
@@ -48,13 +49,30 @@ samples
 # First, prepare the model by building the design; these need to be in numeric format (they should be already but just in case)
 samples$dayas.numeric(samples$day)
 
-spline_design <- model.matrix(formula( ~ ns(samples$day, df = 3) + samples$sex + samples$tissue))
-spline_design
+full_spline_design <- model.matrix(formula( ~ ns(samples$day, df = 3) + samples$sex + samples$tissue))
+notime_spline_design <- model.matrix(formula( ~  samples$sex + samples$tissue))
+nosex_spline_design <- model.matrix(formula( ~ ns(samples$day, df = 3) + samples$tissue))
+notimesex_spline_design <- model.matrix(formula( ~ samples$tissue))
 
 ##############add annotation data here
 ann <- fread() #### add in annotation data once I have it.
 
 # import everything into a sleuth object using the Sleuth package
-so <- sleuth_prep(samples, num_cores = 18) #, target_mapping = ann
+so <- sleuth_prep(samples)
+so <- sleuth_fit(so, formula = full_spline_design, fit_name = "full") #, target_mapping = ann
+so <- sleuth_fit(so, formula = notime_spline_design, fit_name = "notime")
+so <- sleuth_fit(so, formula = nosex_spline_design, fit_name = "nosex")
+so <- sleuth_fit(so, formula = notimesex_spline_design, fit_name = "notimesex")
 
+# print the models
+models(so)
+
+# run a likelihood ratio test between the full and the model without time. This basically tests whether the inclusion of the time points explains the data better than the reduced model with just the lane. Transcripts better explained by the inclusion of time should be considered differentially expressed over time. Qvalues are corrected for multiple comparisons.
+so_lrt <- sleuth_lrt(so, "notime", "full")
+
+# save the model results to a data frame
+lrt_results <- sleuth_results(so_lrt, 'notime:full', test_type = 'lrt')
+
+# how many transcripts are differentially expressed if we use a cut off of a = 0.05?
+table(lrt_results[,"qval"] < 0.05)
 
