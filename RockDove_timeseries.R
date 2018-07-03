@@ -37,8 +37,7 @@ sample_id <- dir(file.path(base_dir, "kallisto_mappings"))
 kal_dirs <- sapply(sample_id, function(id) file.path(base_dir, "kallisto_mappings", id))
 # read in a tab-delimited file with information about samples and treatments
 samples <- read.csv("Parental_data_for_analyses.csv", header = TRUE)
-# drop column from Windows...
-samples <- samples[,2:8]
+
 # order them to match up with sample paths
 samples <- samples[order(samples$sample),] 
 # append paths to the sample dataframe
@@ -59,8 +58,8 @@ ann <- fread("name.mapping.withcodes.parental.csv", header = FALSE) #### add in 
 colnames(ann) <- c("target_id", "peptide_id", "gene_number", "gene_symbol")
 
 # import everything into a sleuth object using the Sleuth package
-so <- sleuth_prep(samples)
-so <- sleuth_fit(so, formula = full_spline_design, fit_name = "full") #, target_mapping = ann
+so <- sleuth_prep(samples, target_mapping = ann)
+so <- sleuth_fit(so, formula = full_spline_design, fit_name = "full") 
 so <- sleuth_fit(so, formula = notime_spline_design, fit_name = "notime")
 so <- sleuth_fit(so, formula = nosex_spline_design, fit_name = "nosex")
 so <- sleuth_fit(so, formula = notimesex_spline_design, fit_name = "notimesex")
