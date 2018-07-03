@@ -55,7 +55,8 @@ nosex_spline_design <- model.matrix(formula( ~ ns(samples$day, df = 3) + samples
 notimesex_spline_design <- model.matrix(formula( ~ samples$tissue))
 
 ##############add annotation data here
-ann <- fread() #### add in annotation data once I have it.
+ann <- fread("name.mapping.withcodes.parental.csv", header = FALSE) #### add in annotation data once I have it.
+colnames(ann) <- c("target_id", "peptide_id", "gene_number", "gene_symbol")
 
 # import everything into a sleuth object using the Sleuth package
 so <- sleuth_prep(samples)
