@@ -1,0 +1,107 @@
+---
+title: "RockDove_TimeSeries"
+author: "Adam Stuckert"
+date: "July 3, 2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r, run = FALSE}
+source("http://bioconductor.org/biocLite.R")
+biocLite("rhdf5")
+install.packages("devtools")
+devtools::install_github("pachterlab/sleuth")
+install.packages("dplyr")
+install.packages("foreach")
+install.packages("data.table")
+install.packages("splines")
+install.packages("ggthemes")
+install.packages("scales")
+install.packages("gridExtra")
+```
+
+```{r global_options, include=FALSE}
+# load packages required for analyses
+library(sleuth)
+library(dplyr)
+#library(foreach)
+#library(doParallel)
+library(data.table)
+library(splines)
+library(ggthemes)
+library(scales)
+library(gridExtra)
+```
+
+```{r}
+sessionInfo()
+```
+
+Prepare the metadata and read mapping data.
+
+```{r}
+# get the directory/path for each sample in this study
+base_dir <- getwd()
+# name of each sample
+sample_id <- dir(file.path(base_dir, "kallisto_mappings")) 
+# append them to get the location of each samples' quantification
+kal_dirs <- sapply(sample_id, function(id) file.path(base_dir, "kallisto_mappings", id))
+# read in a tab-delimited file with information about samples and treatments
+samples <- read.csv("Parental_data_for_analyses.csv", header = TRUE)
+
+# order them to match up with sample paths
+samples <- samples[order(samples$sample),] 
+# append paths to the sample dataframe
+samples <- dplyr::mutate(samples, path = kal_dirs)
+
+head(samples)
+```
+
+Prepare to build the model by building the spline designs for model comparisons; these time points need to be in numeric format (they should be already but just in case).
+
+```{r}
+samples$days.numeric(samples$day)
+
+full_spline_design <- model.matrix(formula( ~ ns(samples$day, df = 3) + samples$sex + samples$tissue))
+notime_spline_design <- model.matrix(formula( ~  samples$sex + samples$tissue))
+nosex_spline_design <- model.matrix(formula( ~ ns(samples$day, df = 3) + samples$tissue))
+notimesex_spline_design <- model.matrix(formula( ~ samples$tissue))
+```
+
+Import annotation data and prepare it for inclusion in models.
+
+```{r}
+ann <- fread("name.mapping.withcodes.parental.csv", header = FALSE) #### add in annotation data once I have it.
+colnames(ann) <- c("target_id", "peptide_id", "gene_number", "gene_symbol")
+```
+
+
+Import everything into a sleuth object using the Sleuth package, then build the various models. Finally, print the models that have been populated. 
+
+```{r}
+so <- sleuth_prep(samples, target_mapping = ann)
+so <- sleuth_fit(so, formula = full_spline_design, fit_name = "full") 
+so <- sleuth_fit(so, formula = notime_spline_design, fit_name = "notime")
+so <- sleuth_fit(so, formula = nosex_spline_design, fit_name = "nosex")
+so <- sleuth_fit(so, formula = notimesex_spline_design, fit_name = "notimesex")
+
+models(so)
+```
+
+Run a likelihood ratio test between the full and the model without time. This basically tests whether the inclusion of the time points explains the data better than the reduced model with just the lane. Transcripts better explained by the inclusion of time should be considered differentially expressed over time. Qvalues are corrected for multiple comparisons.
+
+```{R}
+so_lrt <- sleuth_lrt(so, "notime", "full")
+
+# save the model results to a data frame
+lrt_results <- sleuth_results(so_lrt, 'notime:full', test_type = 'lrt')
+
+# how many transcripts are differentially expressed if we use a cut off of a = 0.05?
+table(lrt_results[,"qval"] < 0.05)
+```
+
+We are interested in time series figures for a number of key parental care genes. 
+```{r}
+genes <- read.csv("parental_care_genes_of_interest.csv", header = TRUE)
+```
