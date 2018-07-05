@@ -48,9 +48,12 @@ head(samples)
 # First, prepare the model by building the design; these need to be in numeric format (they should be already but just in case)
 samples$day <- as.numeric(samples$day)
 
-full_spline_design <- model.matrix(formula( ~ ns(samples$day, df = 3) + samples$sex + samples$tissue))
+# Drop the 'manipulate' group
+samples <- samples %>% dplyr::filter(treatment != "manipulate")
+
+full_spline_design <- model.matrix(formula( ~ ns(samples$day, df = 7) + samples$sex + samples$tissue))
 notime_spline_design <- model.matrix(formula( ~  samples$sex + samples$tissue))
-nosex_spline_design <- model.matrix(formula( ~ ns(samples$day, df = 3) + samples$tissue))
+nosex_spline_design <- model.matrix(formula( ~ ns(samples$day, df = 7) + samples$tissue))
 notimesex_spline_design <- model.matrix(formula( ~ samples$tissue))
 
 ##############add annotation data here
@@ -58,7 +61,7 @@ ann <- fread("AdamTimeSeriesDocs/name.mapping.withcodes.parental.csv", header = 
 colnames(ann) <- c("target_id", "peptide_id", "gene_number", "gene_symbol")
 
 # import everything into a sleuth object using the Sleuth package
-so <- sleuth_prep(samples, target_mapping = ann, num_cores = 24)
+so <- sleuth_prep(samples, target_mapping = ann, num_cores = 1) # something seems to be broken with parallel processing
 so <- sleuth_fit(so, formula = full_spline_design, fit_name = "full") 
 so <- sleuth_fit(so, formula = notime_spline_design, fit_name = "notime")
 so <- sleuth_fit(so, formula = nosex_spline_design, fit_name = "nosex")
@@ -82,6 +85,7 @@ genes <- read.csv("AdamTimeSeriesDocs/parental_care_genes_of_interest.csv", head
 
 ## search through the results for anything that annotated in the full or xenopus annotation to a color gene
 lrt_par_genes <- lrt_results %>% filter(gene_number %in% genes$gene_number)
+lrt_par_genes <- dplyr::left_join(lrt_par_genes, genes, by = "gene_number")
 
 dir.create("colorgenespline-figures")
 
@@ -91,29 +95,46 @@ options(bitmapType='cairo')
 # Now extract only the data of interest.
 for (i in 1:nrow(lrt_par_genes)){
   transcript <- lrt_par_genes[i,"target_id"]
-  gene <- lrt_par_genes[i,"gene_symbol"]
+  gene <- lrt_par_genes[i,"gene_name"]
   qval <- lrt_par_genes[i,"qval"]
   tmp <- so$obs_norm %>% dplyr::filter(target_id == transcript)  ### These are normalized values I think!
   tmp <- dplyr::full_join(so$sample_to_covariates, tmp, by = 'sample')
   tmp
   
+# create a log count column in the dataframe
+tmp$log_counts <- log(tmp$est_counts + 1)
+
 # subset out the three tissues for the graph...
 
 tmp.hyp <- tmp %>% dplyr::filter(tissue == "hypo")
 tmp.pit <- tmp %>% dplyr::filter(tissue == "pit")
 tmp.gonad <- tmp %>% dplyr::filter(tissue == "gonad")
   
-a <- ggplot(tmp.hyp, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("pink", "blue"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene)) + guides(size=FALSE) + theme_bw()
+# graph the estimated counts of each tissue  
+a <- ggplot(tmp.hyp, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("palevioletred1", "royalblue1"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " expression in the hypothalamus")) + guides(size=FALSE) + theme_bw()
    ggsave(paste0("colorgenespline-figures/", gene, "_hypothalamus.png"), width = 6.81, height = 3.99)
 
-b <- ggplot(tmp.pit, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("pink", "blue"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene)) + guides(size=FALSE) + theme_bw()
+b <- ggplot(tmp.pit, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("palevioletred1", "royalblue1"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " expression in the pituitary")) + guides(size=FALSE) + theme_bw()
    ggsave(paste0("colorgenespline-figures/", gene, "_pituitary.png"), width = 6.81, height = 3.99)
 
-c <- ggplot(tmp.gonad, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("pink", "blue"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene)) + guides(size=FALSE) + theme_bw()
+c <- ggplot(tmp.gonad, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("palevioletred1", "royalblue1"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " expression in the gonads")) + guides(size=FALSE) + theme_bw()
    ggsave(paste0("colorgenespline-figures/", gene, "_gonad.png"), width = 6.81, height = 3.99)
+
+# graph the log transformed estimated counts from each tissue
+d <- ggplot(tmp.hyp, aes(x=day, y=log_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("palevioletred1", "royalblue1"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " log expression in the hypothalamus")) + guides(size=FALSE) + theme_bw()
+   ggsave(paste0("colorgenespline-figures/logtransformed_", gene, "_hypothalamus.png"), width = 6.81, height = 3.99)
+
+e <- ggplot(tmp.pit, aes(x=day, y=log_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("palevioletred1", "royalblue1"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " log expression in the pituitary")) + guides(size=FALSE) + theme_bw()
+   ggsave(paste0("colorgenespline-figures/logtransformed_", gene, "_pituitary.png"), width = 6.81, height = 3.99)
+
+f <- ggplot(tmp.gonad, aes(x=day, y=log_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("palevioletred1", "royalblue1"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " log expression in the gonads")) + guides(size=FALSE) + theme_bw()
+   ggsave(paste0("colorgenespline-figures/logtransformed_", gene, "_gonad.png"), width = 6.81, height = 3.99)
 }
 
-# I need to make 
+# SORT BY THE 'MOST DIFFERENTIALLY EXPRESSED' GENES
+# should already be in order
+top_hundredDEgenes <- head(lrt_results, 100)
+write.csv(top_hundredDEgenes, "top100DEgenes.csv")
 
 
 # saved the slueth run:
