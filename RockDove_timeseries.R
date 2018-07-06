@@ -111,23 +111,23 @@ tmp.pit <- tmp %>% dplyr::filter(tissue == "pit")
 tmp.gonad <- tmp %>% dplyr::filter(tissue == "gonad")
   
 # graph the estimated counts of each tissue  
-a <- ggplot(tmp.hyp, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green3", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " expression in the hypothalamus")) + guides(size=FALSE) + theme_bw()
+a <- ggplot(tmp.hyp, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green4", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4, fill=NA))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " expression in the hypothalamus")) + guides(size=FALSE) + theme_bw() 
    ggsave(paste0("colorgenespline-figures/", gene, "_hypothalamus.png"), width = 6.81, height = 3.99)
 
-b <- ggplot(tmp.pit, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green3", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " expression in the pituitary")) + guides(size=FALSE) + theme_bw()
+b <- ggplot(tmp.pit, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green4", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4, fill=NA))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " expression in the pituitary")) + guides(size=FALSE) + theme_bw()
    ggsave(paste0("colorgenespline-figures/", gene, "_pituitary.png"), width = 6.81, height = 3.99)
 
-c <- ggplot(tmp.gonad, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green3", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " expression in the gonads")) + guides(size=FALSE) + theme_bw()
+c <- ggplot(tmp.gonad, aes(x=day, y=est_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green4", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4, fill=NA))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " expression in the gonads")) + guides(size=FALSE) + theme_bw()
    ggsave(paste0("colorgenespline-figures/", gene, "_gonad.png"), width = 6.81, height = 3.99)
 
 # graph the log transformed estimated counts from each tissue
-d <- ggplot(tmp.hyp, aes(x=day, y=log_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green3", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " log expression in the hypothalamus")) + guides(size=FALSE) + theme_bw()
+d <- ggplot(tmp.hyp, aes(x=day, y=log_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green4", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4, fill=NA))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " log expression in the hypothalamus")) + guides(size=FALSE)
    ggsave(paste0("colorgenespline-figures/logtransformed_", gene, "_hypothalamus.png"), width = 6.81, height = 3.99)
 
-e <- ggplot(tmp.pit, aes(x=day, y=log_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green3", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " log expression in the pituitary")) + guides(size=FALSE) + theme_bw()
+e <- ggplot(tmp.pit, aes(x=day, y=log_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green4", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4, fill=NA))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " log expression in the pituitary")) + guides(size=FALSE) + theme_bw()
    ggsave(paste0("colorgenespline-figures/logtransformed_", gene, "_pituitary.png"), width = 6.81, height = 3.99)
 
-f <- ggplot(tmp.gonad, aes(x=day, y=log_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green3", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " log expression in the gonads")) + guides(size=FALSE) + theme_bw()
+f <- ggplot(tmp.gonad, aes(x=day, y=log_counts)) + geom_point(aes(size = 3, color = sex)) + scale_colour_manual(values = c("green", "saddlebrown"), guide = guide_legend(title = "Sex", override.aes = list(size=4, fill=NA))) +  geom_smooth(method = loess, aes(group = sex, color = sex)) + ggtitle(paste0(gene, " log expression in the gonads")) + guides(size=FALSE) + theme_bw()
    ggsave(paste0("colorgenespline-figures/logtransformed_", gene, "_gonad.png"), width = 6.81, height = 3.99)
 }
 
